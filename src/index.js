@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 
 const { v4: uuidv4, validate } = require('uuid');
+const { json } = require('express');
 
 const app = express();
 app.use(express.json());
@@ -10,19 +11,56 @@ app.use(cors());
 const users = [];
 
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+  const user = users.find(user => user.username === username);
+  if(!user) {
+    return response.status(404).json({ error: 'User does not exists' });
+  }
+  request.user = user;
+  next();
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const { user } = request;
+  const totalTodos = user.todos.length;
+  if(user.pro === true) {
+    next();
+  }
+  if(user.pro !== true && totalTodos > 9) {
+    return response.status(403).json({ error: 'Activate your PRO account. You have reached your todos limit!' });
+  } else {
+    next();
+  }
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+  const { id } = request.params;
+  const checkIdValidate = validate(id);
+  if (!checkIdValidate) {
+    return response.status(400).json({ done: true, error: 'Do you not have enough access' });
+  }
+  const user = users.find(user => user.username === username);
+  if (!user) {
+    return response.status(404).json({ error: 'User not found!' });
+  }
+  const todo = user.todos.find(user => user.id === id);
+  if (!todo) {
+    return response.status(404).json({ error: 'Todo not found!' });
+  }
+  request.user = user;
+  request.todo = todo;
+  next();
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params;
+  const user = users.find(user => user.id === id);
+  if (!user) {
+    return response.status(404).json({ error: 'User not found!' });
+  }
+  request.user = user;
+  next();
 }
 
 app.post('/users', (request, response) => {
